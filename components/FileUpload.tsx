@@ -42,9 +42,6 @@ export default function FileUpload({ onFileProcessed, onError, result }: FileUpl
       }
 
       const result = await response.json()
-      console.log('API Response:', result)
-      console.log('Excel data received:', result.excelData ? 'Yes' : 'No')
-      console.log('Excel data length:', result.excelData?.length || 0)
       setExcelData(result.excelData)
       onFileProcessed(file, result)
     } catch (error) {
@@ -69,10 +66,6 @@ export default function FileUpload({ onFileProcessed, onError, result }: FileUpl
     }
 
     try {
-      console.log('Starting download process...')
-      console.log('Excel data length:', excelData.length)
-      console.log('Uploaded file name:', uploadedFile.name)
-      
       // Convert base64 to blob and download
       const binaryString = atob(excelData)
       const bytes = new Uint8Array(binaryString.length)
@@ -85,18 +78,12 @@ export default function FileUpload({ onFileProcessed, onError, result }: FileUpl
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       })
       
-      console.log('Blob created:', blob.size, 'bytes')
-      console.log('Blob type:', blob.type)
-      
       // Try multiple download methods
       const filename = uploadedFile.name.replace('.txt', '_converted.xlsx')
-      console.log('Download filename:', filename)
       
-      // Method 1: Direct blob download
+      // Method 1: Direct blob download for IE/Edge
       if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-        // IE/Edge
         window.navigator.msSaveOrOpenBlob(blob, filename)
-        console.log('Downloaded via IE/Edge method')
         return
       }
       
@@ -109,18 +96,15 @@ export default function FileUpload({ onFileProcessed, onError, result }: FileUpl
       
       // Add to DOM, click, and remove
       document.body.appendChild(link)
-      console.log('Link created and added to DOM')
       
       // Use setTimeout to ensure the link is properly added
       setTimeout(() => {
         link.click()
-        console.log('Link clicked')
         
         // Cleanup after a delay
         setTimeout(() => {
           document.body.removeChild(link)
           window.URL.revokeObjectURL(url)
-          console.log('Cleanup completed')
         }, 100)
       }, 10)
       
