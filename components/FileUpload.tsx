@@ -42,6 +42,9 @@ export default function FileUpload({ onFileProcessed, onError, result }: FileUpl
       }
 
       const result = await response.json()
+      console.log('API Response:', result)
+      console.log('Excel data received:', result.excelData ? 'Yes' : 'No')
+      console.log('Excel data length:', result.excelData?.length || 0)
       setExcelData(result.excelData)
       onFileProcessed(file, result)
     } catch (error) {
@@ -66,25 +69,61 @@ export default function FileUpload({ onFileProcessed, onError, result }: FileUpl
     }
 
     try {
+      console.log('Starting download process...')
+      console.log('Excel data length:', excelData.length)
+      console.log('Uploaded file name:', uploadedFile.name)
+      
       // Convert base64 to blob and download
-      const byteCharacters = atob(excelData)
-      const byteNumbers = new Array(byteCharacters.length)
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      const binaryString = atob(excelData)
+      const bytes = new Uint8Array(binaryString.length)
+      
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
       }
-      const byteArray = new Uint8Array(byteNumbers)
-      const blob = new Blob([byteArray], { 
+      
+      const blob = new Blob([bytes], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       })
       
+      console.log('Blob created:', blob.size, 'bytes')
+      console.log('Blob type:', blob.type)
+      
+      // Try multiple download methods
+      const filename = uploadedFile.name.replace('.txt', '_converted.xlsx')
+      console.log('Download filename:', filename)
+      
+      // Method 1: Direct blob download
+      if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+        // IE/Edge
+        window.navigator.msSaveOrOpenBlob(blob, filename)
+        console.log('Downloaded via IE/Edge method')
+        return
+      }
+      
+      // Method 2: Create object URL and download
       const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = uploadedFile.name.replace('.txt', '_converted.xlsx')
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.style.display = 'none'
+      
+      // Add to DOM, click, and remove
+      document.body.appendChild(link)
+      console.log('Link created and added to DOM')
+      
+      // Use setTimeout to ensure the link is properly added
+      setTimeout(() => {
+        link.click()
+        console.log('Link clicked')
+        
+        // Cleanup after a delay
+        setTimeout(() => {
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+          console.log('Cleanup completed')
+        }, 100)
+      }, 10)
+      
     } catch (error) {
       console.error('Download error:', error)
       onError('Failed to download Excel file: ' + (error instanceof Error ? error.message : 'Unknown error'))

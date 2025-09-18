@@ -92,6 +92,10 @@ export async function POST(request: NextRequest) {
     // Store the Excel data temporarily (in a real app, you might use Redis or a database)
     // For this demo, we'll return the data and let the client handle the download
     const base64Data = Buffer.from(excelBuffer).toString('base64')
+    
+    console.log('Excel buffer size:', excelBuffer.length)
+    console.log('Base64 data length:', base64Data.length)
+    console.log('Rows processed:', processedRows)
 
     return NextResponse.json({
       success: true,
