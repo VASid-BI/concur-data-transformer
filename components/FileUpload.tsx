@@ -13,6 +13,7 @@ interface FileUploadProps {
 export default function FileUpload({ onFileProcessed, onError, result }: FileUploadProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [excelData, setExcelData] = useState<string | null>(null)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -41,6 +42,7 @@ export default function FileUpload({ onFileProcessed, onError, result }: FileUpl
       }
 
       const result = await response.json()
+      setExcelData(result.excelData)
       onFileProcessed(file, result)
     } catch (error) {
       onError(error instanceof Error ? error.message : 'An error occurred')
@@ -58,11 +60,14 @@ export default function FileUpload({ onFileProcessed, onError, result }: FileUpl
   })
 
   const downloadExcel = async () => {
-    if (!uploadedFile || !result?.excelData) return
+    if (!uploadedFile || !excelData) {
+      onError('No Excel data available for download')
+      return
+    }
 
     try {
       // Convert base64 to blob and download
-      const byteCharacters = atob(result.excelData)
+      const byteCharacters = atob(excelData)
       const byteNumbers = new Array(byteCharacters.length)
       for (let i = 0; i < byteCharacters.length; i++) {
         byteNumbers[i] = byteCharacters.charCodeAt(i)
@@ -81,7 +86,8 @@ export default function FileUpload({ onFileProcessed, onError, result }: FileUpl
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (error) {
-      onError('Failed to download Excel file')
+      console.error('Download error:', error)
+      onError('Failed to download Excel file: ' + (error instanceof Error ? error.message : 'Unknown error'))
     }
   }
 
@@ -132,12 +138,18 @@ export default function FileUpload({ onFileProcessed, onError, result }: FileUpl
                 <p className="font-medium text-gray-900">{uploadedFile.name}</p>
                 <p className="text-sm text-gray-500">
                   {(uploadedFile.size / 1024).toFixed(1)} KB
+                  {excelData && <span className="ml-2 text-green-600">✓ Ready for download</span>}
                 </p>
               </div>
             </div>
             <button
               onClick={downloadExcel}
-              className="btn-primary flex items-center space-x-2"
+              disabled={!excelData}
+              className={`flex items-center space-x-2 ${
+                excelData 
+                  ? 'btn-primary' 
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
             >
               <Download className="h-4 w-4" />
               <span>Download Excel</span>
